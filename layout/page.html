@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>{{ title }} - {{ subtitle }}</title>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width">
+    <link rel="stylesheet" type="text/css" href="{{ base_path }}/css/style.css">
+</head>
+
+<body id="{{ slug }}">
+
+<nav>
+<section>
+    <span class="home">
+        <a href="{{ base_path }}/">Home</a>
+    </span>
+    <span class="links">
+        <a href="{{ base_path }}/blog/">Blog</a>
+        <a href="{{ base_path }}/news/">News</a>
+        <a href="{{ base_path }}/about/">About</a>
+    </span>
+</section>
+</nav>
+
+<main>
+{{ content }}
+</main>
+
+<footer>
+<section>
+<p>
+    <a href="https://mastodon.gamedev.place/@pux0r3">Mastodon</a>
+    <a href="https://github.com/patm1987/">GitHub</a>
+    <a href="https://www.linkedin.com/in/patrick-martin-268a85a/">Linked In</a>
+    <a href="https://twitter.com/pux0r3/">Twitter</a>
+</p>
+
+<p xmlns:cc="http://creativecommons.org/ns#" xmlns:dct="http://purl.org/dc/terms/"><a property="dct:title" rel="cc:attributionURL" href="https://patrick.games/">Patrick Games</a> by <span property="cc:attributionName">Patrick Martin</span> is licensed under <a href="http://creativecommons.org/licenses/by-nc-sa/4.0/?ref=chooser-v1" target="_blank" rel="license noopener noreferrer" style="display:inline-block;">CC BY-NC-SA 4.0<img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/cc.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/by.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/nc.svg?ref=chooser-v1"><img style="height:22px!important;margin-left:3px;vertical-align:text-bottom;" src="https://mirrors.creativecommons.org/presskit/icons/sa.svg?ref=chooser-v1"></a></p> 
+</section>
+</footer>
+
+</body>
+</html>
