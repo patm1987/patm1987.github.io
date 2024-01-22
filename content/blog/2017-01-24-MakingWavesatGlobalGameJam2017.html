@@ -1,0 +1,86 @@
+<!-- title: Making Waves at Global Game Jam 2017 -->
+I could not have been more excited when the Global Game Jam 2017's theme was announced. In college, I was fascinated with simulating soft body objects. I'd done some experiments with Lagrangian fluid simulations a few years back, but nothing that I was inspired to work on this long and this fast.<br />
+<br />
+I joined a small team calling outselves "Scyllier than Charybdis" to work on the game "Poseidon and the Argonauts." The game itself is pretty simple, you try to push various pieces of flotsam into a number of boats, getting points for the number of boats you destroy (vs boats that escape) and you get bonused for minimizing the number of waves you can generate.<br />
+<br />
+<div class="separator" style="clear: both; text-align: center;">
+<iframe allowfullscreen="" class="YOUTUBE-iframe-video" data-thumbnail-src="https://i.ytimg.com/vi/2NoOy2gIVJA/0.jpg" frameborder="0" height="266" src="https://www.youtube.com/embed/2NoOy2gIVJA?feature=player_embedded" width="320"></iframe></div>
+<br />
+<h2>
+What is a Wave?</h2>
+Early in the concepting, we knew that we wanted a game that showed off some of the key features of waves. Our early concepts were focused on the additive properties of waves. Meaning that if you align the crests of two waves they'll add together, as will the troughs.<br />
+<table align="center" cellpadding="0" cellspacing="0" class="tr-caption-container" style="margin-left: auto; margin-right: auto; text-align: center;"><tbody>
+<tr><td style="text-align: center;"><a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjw0GGhJxj_6vizWfg0jgG9zqcb4JBw5QOQd9klp_bvxHXn4rD6r2oYJboeKIHfvot4uDBusKk_ruBFvta-otb7v8z0noweuazoiWKECW0LX5GVFkgztz1RiezKGEGh24aIYO_YuON_I-vR/s1600/graph_20170123_215517.png" imageanchor="1" style="margin-left: auto; margin-right: auto;"><img border="0" height="197" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjw0GGhJxj_6vizWfg0jgG9zqcb4JBw5QOQd9klp_bvxHXn4rD6r2oYJboeKIHfvot4uDBusKk_ruBFvta-otb7v8z0noweuazoiWKECW0LX5GVFkgztz1RiezKGEGh24aIYO_YuON_I-vR/s320/graph_20170123_215517.png" width="320" /></a></td></tr>
+<tr><td class="tr-caption" style="text-align: center;">Blue is sin(x) and red is sin(2x). Green is sum of these functions.<br />
+You can see the waves get higher when the crests align.</td></tr>
+</tbody></table>
+Additionally, if you align the crest and trough, you'll get a straight line.<br />
+<table align="center" cellpadding="0" cellspacing="0" class="tr-caption-container" style="margin-left: auto; margin-right: auto; text-align: center;"><tbody>
+<tr><td style="text-align: center;"><a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgL-AlTq7dPdEOigcuwrinVLQqHE5XNUF3HHcImLtsilE-CO6dEYQ_8yPC2sLElTIVZAcXXVGMBSdsy1bncVZFVVlrXsGnya6PPUO87Ig72ChG8_jY70Vr8HcL3k2qUJjYspDZeZwl-BqGx/s1600/graph_20170123_215411.png" imageanchor="1" style="margin-left: auto; margin-right: auto;"><img border="0" height="197" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgL-AlTq7dPdEOigcuwrinVLQqHE5XNUF3HHcImLtsilE-CO6dEYQ_8yPC2sLElTIVZAcXXVGMBSdsy1bncVZFVVlrXsGnya6PPUO87Ig72ChG8_jY70Vr8HcL3k2qUJjYspDZeZwl-BqGx/s320/graph_20170123_215411.png" width="320" /></a></td></tr>
+<tr><td class="tr-caption" style="text-align: center;">Blue is sin(x) and red is sin(x+pi). Green is the sum of these functions.<br />
+You can see the waves perfectly cancel each other out.</td></tr>
+</tbody></table>
+<br />
+My first instinct was to discretize the play area. You can get really nice-looking waves by pushing a vertex down (or pulling it up), then every frame you average each vertex with its neighbors. Once you discretize it like this you could eventually move to more accurate physical models, but it seemed unlikely to happen during a Game Jam.<br />
+<br />
+Another idea we had was to make our game 2D, and have expanding circular wave sprites expand from your finger. I wanted to go slightly more realistic, so I moved to the idea of a number of "wave generators." These were tiny functions that can produce a height given an x and y position in a 2d field. Another team member came up with a compliant solution that, given an x and y position as well as a wave start time, would produce a circular height map whose shape was defined via a Unity AnimationCurve. It would decay over time and looked excellent.<br />
+<table align="center" cellpadding="0" cellspacing="0" class="tr-caption-container" style="margin-left: auto; margin-right: auto; text-align: center;"><tbody>
+<tr><td style="text-align: center;"><a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgCvQNGJrlwUzYJNWX5s3m7_48O06caNyXwae9SGoQHd9Gzx9JMR0bJmhgDsc3Z6eIH-_y_nnU0ZKabd2HZxMkEdAgmeKwXnJKmWNeLyp00AwASOCKAV3w7Wjm6cAr7E9rcXcK1IKEFC3G_/s1600/wave.png" imageanchor="1" style="margin-left: auto; margin-right: auto;"><img border="0" height="317" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgCvQNGJrlwUzYJNWX5s3m7_48O06caNyXwae9SGoQHd9Gzx9JMR0bJmhgDsc3Z6eIH-_y_nnU0ZKabd2HZxMkEdAgmeKwXnJKmWNeLyp00AwASOCKAV3w7Wjm6cAr7E9rcXcK1IKEFC3G_/s320/wave.png" width="320" /></a></td></tr>
+<tr><td class="tr-caption" style="text-align: center;">AnimationCurve defining the shape of the wave rather than an Animation as intended.</td></tr>
+</tbody></table>
+All of these wave generators would get summed up at a point and generate an absolute height. This was especially useful as we didn't have to iron down a play area size or viewport ahead of time. As we evolved the game concept over 48 hours, we can keep the same set of functions and move them about without sacrificing performance.<br />
+<h2>
+How do Waves Move Things?</h2>
+Eventually we decided to focus on using waves to push objects around, but maintaining the above mentioned features. To do this, we had to model the physics of how a wave moves objects. A wave doesn't actually push an object, it simply lifts it up and down. The object effectively enters a free fall down the face of the wave, with drag caused by water slowing you down.<br />
+<table align="center" cellpadding="0" cellspacing="0" class="tr-caption-container" style="margin-left: auto; margin-right: auto; text-align: center;"><tbody>
+<tr><td style="text-align: center;"><a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjspHdnO2JRdck4PMFWse-ECLHAxt1lmPkU1ztjRUvwC41a0jYWkZXn9YabOQ7TeOVuofFWFDyW4Fuh6aNuabk0vRQzxaeonc3JrrO9bm63kNDfftkIg-4odyjZRzq1_cgKp19bppG19Gn9/s1600/gravity.png" imageanchor="1" style="margin-left: auto; margin-right: auto;"><img border="0" height="208" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjspHdnO2JRdck4PMFWse-ECLHAxt1lmPkU1ztjRUvwC41a0jYWkZXn9YabOQ7TeOVuofFWFDyW4Fuh6aNuabk0vRQzxaeonc3JrrO9bm63kNDfftkIg-4odyjZRzq1_cgKp19bppG19Gn9/s320/gravity.png" width="320" /></a></td></tr>
+<tr><td class="tr-caption" style="text-align: center;">Gravity pulls the object down.<br />
+Object pushed forward due to the wave surface.<br />
+Free fall is slowed due to drag.</td></tr>
+</tbody></table>
+To model this, I decided to calculate the surface normal of the ocean field at the point an object was in contact of the ocean. To do this, I simply sampled the height three times at every point and used the cross product to figure out up.<br />
+<div class="separator" style="clear: both; text-align: center;">
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjJ5-iB37KsGZVdEQ4o2pxFrqoHlwXcGj9Q18bgiqIzCRd78qheUyC68FdgCSmv6yDAx4w5Y4Aw8Ahh1Uhnb_ZiltjoEt6tNXxB1VQQqD9w0wRrWlavjzSf4Cee7Pc4P0_WqsbRMBbsi1Iy/s1600/wave.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" height="140" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjJ5-iB37KsGZVdEQ4o2pxFrqoHlwXcGj9Q18bgiqIzCRd78qheUyC68FdgCSmv6yDAx4w5Y4Aw8Ahh1Uhnb_ZiltjoEt6tNXxB1VQQqD9w0wRrWlavjzSf4Cee7Pc4P0_WqsbRMBbsi1Iy/s320/wave.png" width="320" /></a></div>
+<br />
+When I take out the height of this normal, I get a direction that the object is moving scaled by how vertical the wave is. I can then apply a force found by multiplying this by some scalar defined per object (to simulate heavier or lighter objects, or objects that are more or less streamlined).<br />
+<br />
+The best part about this model is, if you don't setup the wave right, an object will ride up the front of the wave and down the back side. This iteraction is observable in the real world, and gets incredibly realistic looking wave interactions with little work.<br />
+<h2>
+Rendering Waves</h2>
+<div>
+My first attempt at rendering waves was to create a plane in the world. Each vertex will be evaluated once a frame, sampling its position in the height field. We even get the surface normal from our movement calculations! This turned out to scale incredibly poorly, especially when running on a phone. One team member had a Nexus 5, so this wasn't going to fly.</div>
+<div>
+<br /></div>
+<div>
+After the normal optimization steps in Unity (using native arrays over List and switching to for loops over indices over foreach with an enumerator), I decided to change the geometry to minimize the number of vertices in the scene. I generate the vertices in viewport space, ensuring an even distribution across the screen. For each vertex, I use Unity's ViewportPointToRay function to generate a world space ray, then intersect it with the water plane. After this projection, I sample the height field to move the point up or down. This let me halve the number of vertices and maintain the same (or even improved) level of graphic fidelity.<br />
+<table align="center" cellpadding="0" cellspacing="0" class="tr-caption-container" style="margin-left: auto; margin-right: auto; text-align: center;"><tbody>
+<tr><td style="text-align: center;"><a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgihI_SbdPxPSIdjm2_YtI6I9icZNs1vroIBTVOH1zR1bOFIC8C_5wL57QmxpC74Uz8RLAQVlxJXrrlMWgJ2sI9vuI9k4RLpKHvTsusEfjcXUomSZ3O6Pbj9z4HiVw6Kw6xH2lZnUSE4NiZ/s1600/grid_screenshot.png" imageanchor="1" style="margin-left: auto; margin-right: auto;"><img border="0" height="180" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgihI_SbdPxPSIdjm2_YtI6I9icZNs1vroIBTVOH1zR1bOFIC8C_5wL57QmxpC74Uz8RLAQVlxJXrrlMWgJ2sI9vuI9k4RLpKHvTsusEfjcXUomSZ3O6Pbj9z4HiVw6Kw6xH2lZnUSE4NiZ/s320/grid_screenshot.png" width="320" /></a></td></tr>
+<tr><td class="tr-caption" style="text-align: center;">Note that the water mesh in the editor is evenly spaced across the display, with the only protrusion being from the ripple.</td></tr>
+</tbody></table>
+In the main menu, it was decided that viewing the horizon was important. I'm sure you are worried that this method wouldn't hold up when I didn't have a ground plane to intersect. If the raycast misses, I simply projected the vertex to the far plane, and let the heightmap logic pull it down. Visually it actually worked pretty well (although waves appear broken if you touch too far back).</div>
+<h2>
+What is Missing</h2>
+<div>
+Due to the way I was performing mesh generation, the UV coordinates of the mesh were locked to screen space. Not only did this make a water texture stand still when the camera moved, but the perspective shearing was undone by the vertices being placed from viewport space. I opted remove the texture entirely, although I could've tied it to the world space position of the vertex in the x,z plane.</div>
+<div>
+<br /></div>
+<div>
+The water has just basic lighting on it. I would've liked to change the color based on the height of the wave and how "up" the surface normal was, which could've been done with a simple shader. Since we also computed the radius of the waves, we could've spread "foam" particles around the wave to simulate the waves breaking.</div>
+<h2>
+What Would I Change</h2>
+<div>
+I mentioned before a model where you'd simply move vertices up or down and let them normalize out to simulate waves. I really would've liked to experiment with this, it would've let waves crash around islands and let me render trails behind the ships without having to come up with a new equation to factor into the height field. Most importantly, it would've easily let me allow a user to drag their finger to generate waves.</div>
+<div>
+<br /></div>
+<div>
+Watching people play the game, everyone wants to drag their finger. I would've liked to support this which could've been done by either changing the water model (as mentioned above), dropping multiple "wave points" (which I capped at 16 for performance and code simplicity reasons), or generating a model where I track the start and end points of the touch. I could simulate the magnitude of the wave mathematically as a capsule, with the radius changing based on the time the point was alive.<br />
+<h2>
+Conclusion</h2>
+</div>
+<div>
+The model used in the game for waves was incredibly simple and ran well on all the devices we had available. Despite not being incredibly accurate, it turned out very well. Check out our sourcecode and final APK form our Jam page:<br />
+<a href="http://globalgamejam.org/2017/games/poseidon-and-argonauts">http://globalgamejam.org/2017/games/poseidon-and-argonauts</a></div>
+<div>
+<ul>
+</ul>
+</div>

@@ -1,0 +1,250 @@
+<!-- title: Kotlin Game Programming -->
+<h2>
+Introduction</h2>
+<div>
+I love to learn new languages as each one is a treasure trove of new ideas and ways of thinking that I can carry forward to new projects. When porting Android Java code to Kotlin, I started to see a few possible patterns emerge that appeared incredibly useful for solving problems I've encountered in game engine development. I set off to explore these patterns using LWJGL, and possibly find a new language for OpenGL development in the process. The spoiler is that I feel hamstrung without constexpr and the ability to pass by value, but there are still plenty of useful patterns Kotlin made obvious.</div>
+<div>
+<br /></div>
+<div>
+As I write this, I'm still actively exploring the language over in my <a href="https://github.com/patm1987/lwjgl_test" target="_blank">lwjgl_test repository on GitHub</a>. Feel free to use this as a starting point or just as a reference.</div>
+<div>
+<br /></div>
+<h2>
+The Data Class</h2>
+<div>
+One of my inspirations for this project was the existence of a <a href="https://kotlinlang.org/docs/reference/data-classes.html" target="_blank">data class</a> in Kotlin. I was hoping for a pass by value type much like C#'s struct, but that is not the case. It means in cases like a scenegraph node or general model transform, you will probably write your logic more like a C math API than a C++ one (that is, you will tend to want to take in a value to write out to rather than having inlined const functions).<br />
+<br />
+You can see the side effects in my Transform class, I end up having to take in a Vector3f to write into to avoid runtime heap allocations and provide hooks for "dirty" flags in the future.</div>
+<div>
+<br /></div>
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: 0.1em 0.1em 0.1em 0.8em; border: solid gray; overflow: auto; padding: 0.2em 0.6em; width: auto;">
+<table><tbody>
+<tr><td><pre style="line-height: 125%; margin: 0;"> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14</pre>
+</td><td><pre style="line-height: 125%; margin: 0;"><span style="color: #66d9ef;">class</span> <span style="color: #a6e22e;">Transform</span> <span style="color: #f8f8f2;">{</span>
+    <span style="color: #66d9ef;">private</span> <span style="color: #66d9ef;">val</span> <span style="color: #f8f8f2;">position</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">Vector3f()</span>
+    <span style="color: #75715e;">// ...</span>
+
+    <span style="color: #66d9ef;">fun</span> <span style="color: #a6e22e;">setPosition</span><span style="color: #f8f8f2;">(position:</span> <span style="color: #f8f8f2;">Vector3f)</span> <span style="color: #f8f8f2;">{</span>
+        <span style="color: #66d9ef;">this</span><span style="color: #f8f8f2;">.position.</span><span style="color: #66d9ef;">set</span><span style="color: #f8f8f2;">(position)</span>
+    <span style="color: #f8f8f2;">}</span>
+
+    <span style="color: #66d9ef;">fun</span> <span style="color: #a6e22e;">getPosition</span><span style="color: #f8f8f2;">(position:</span> <span style="color: #f8f8f2;">Vector3f)</span> <span style="color: #f8f8f2;">{</span>
+        <span style="color: #f8f8f2;">position.</span><span style="color: #66d9ef;">set</span><span style="color: #f8f8f2;">(</span><span style="color: #66d9ef;">this</span><span style="color: #f8f8f2;">.position)</span>
+    <span style="color: #f8f8f2;">}</span>
+
+    <span style="color: #75715e;">// ...</span>
+<span style="color: #f8f8f2;">}</span>
+</pre>
+</td></tr>
+</tbody></table>
+</div>
+<div>
+<br /></div>
+<div>
+<h2>
+OpenGL State Management</h2>
+A large portion of my time in engine development is typically focused around OpenGL state management. If you're unfamiliar with the OpenGL model, your OpenGL system is effectively a state machine. It's common to abstract this state machine with an additional software layer that prevents redundant state set calls and to ensure that the state is correct to perform the next operation you wish to execute.<br />
+<br />
+My rendering code is what I'm most proud of for this project. As of right now, my renderModel function lives in my shader logic and looks like this:<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: 0.1em 0.1em 0.1em 0.8em; border: solid gray; overflow: auto; padding: 0.2em 0.6em; width: auto;">
+<table><tbody>
+<tr><td><pre style="line-height: 125%; margin: 0;"> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18</pre>
+</td><td><pre style="line-height: 125%; margin: 0;">        <span style="color: #66d9ef;">fun</span> <span style="color: #a6e22e;">renderModel</span><span style="color: #f8f8f2;">(model:</span> <span style="color: #f8f8f2;">HalfEdgeModel,</span> <span style="color: #f8f8f2;">material:</span> <span style="color: #f8f8f2;">Material)</span> <span style="color: #f8f8f2;">{</span>
+            <span style="color: #f8f8f2;">glUniform4f(modelAmbientColorUniform,</span> <span style="color: #f8f8f2;">material.ambient.x,</span> <span style="color: #f8f8f2;">material.ambient.y,</span> <span style="color: #f8f8f2;">material.ambient.z,</span> <span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">)</span>
+
+            <span style="color: #f8f8f2;">model.use</span> <span style="color: #f8f8f2;">{</span>
+                <span style="color: #f8f8f2;">MemoryStack.stackPush().use</span> <span style="color: #f8f8f2;">{</span>
+                    <span style="color: #66d9ef;">val</span> <span style="color: #f8f8f2;">nativeMatrix</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">it.mallocFloat(</span><span style="color: #ae81ff;">16</span><span style="color: #f8f8f2;">)</span>
+                    <span style="color: #66d9ef;">val</span> <span style="color: #f8f8f2;">modelMatrix</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">Matrix4f()</span>
+                    <span style="color: #f8f8f2;">model.transform.getWorldMatrix(modelMatrix)</span>
+                    <span style="color: #f8f8f2;">modelMatrix.</span><span style="color: #66d9ef;">get</span><span style="color: #f8f8f2;">(nativeMatrix)</span>
+
+                    <span style="color: #f8f8f2;">GL20.glUniformMatrix4fv(modelUniform,</span> <span style="color: #66d9ef;">false</span><span style="color: #f8f8f2;">,</span> <span style="color: #f8f8f2;">nativeMatrix)</span>
+                <span style="color: #f8f8f2;">}</span>
+
+                <span style="color: #f8f8f2;">loadPositions(positionAttribute)</span>
+                <span style="color: #f8f8f2;">loadNormals(normalAttribute)</span>
+                <span style="color: #f8f8f2;">drawElements()</span>
+            <span style="color: #f8f8f2;">}</span>
+        <span style="color: #f8f8f2;">}</span>
+</pre>
+</td></tr>
+</tbody></table>
+</div>
+<br />
+The functions loadPositions(), loadNormals(), and drawElements() are only available inside model.use. Two features of Kotlin make this possible. First, functions in Kotlin may take lambdas as parameters. If the last parameter to a function is a lambda, you may close the function argument list and write an open curly brace to implement this lambda. On top of that, if the only argument is a lambda, you may exclude the argument list entirely. Second, these lambdas may have a receiver object. This means that the lambda syntactically appears to be a member of another class and can access members of that class in the lambda body. You can read more about this <a href="https://kotlinlang.org/docs/reference/lambdas.html" target="_blank">here</a>.<br />
+<div>
+<br /></div>
+<div>
+This is where Kotlin shines. My implementation of use() looks like this:</div>
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: 0.1em 0.1em 0.1em 0.8em; border: solid gray; overflow: auto; padding: 0.2em 0.6em; width: auto;">
+<table><tbody>
+<tr><td><pre style="line-height: 125%; margin: 0;">1
+2
+3
+4
+5
+6
+7</pre>
+</td><td><pre style="line-height: 125%; margin: 0;">    <span style="color: #66d9ef;">fun</span> <span style="color: #a6e22e;">use</span><span style="color: #f8f8f2;">(callback:</span> <span style="color: #f8f8f2;">HalfEdgeModel.ActiveModel.()</span> <span style="color: #f8f8f2;">-&gt;</span> <span style="color: #f8f8f2;">Unit)</span> <span style="color: #f8f8f2;">{</span>
+        <span style="color: #f8f8f2;">glBindBuffer(GL_ARRAY_BUFFER,</span> <span style="color: #f8f8f2;">vertexBufferObject)</span>
+        <span style="color: #f8f8f2;">glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,</span> <span style="color: #f8f8f2;">indexBufferObject)</span>
+        <span style="color: #f8f8f2;">activeModel.callback()</span>
+        <span style="color: #f8f8f2;">glBindBuffer(GL_ELEMENT_ARRAY_BUFFER,</span> <span style="color: #ae81ff;">0</span><span style="color: #f8f8f2;">)</span>
+        <span style="color: #f8f8f2;">glBindBuffer(GL_ARRAY_BUFFER,</span> <span style="color: #ae81ff;">0</span><span style="color: #f8f8f2;">)</span>
+    <span style="color: #f8f8f2;">}</span>
+</pre>
+</td></tr>
+</tbody></table>
+</div>
+<div>
+<br />
+The line activeModel.callback() references a private member in HalfEdgeModel of the type ActiveModel. All the rendering commands are implemented in this class:<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: 0.1em 0.1em 0.1em 0.8em; border: solid gray; overflow: auto; padding: 0.2em 0.6em; width: auto;">
+<table><tbody>
+<tr><td><pre style="line-height: 125%; margin: 0;"> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13</pre>
+</td><td><pre style="line-height: 125%; margin: 0;">    <span style="color: #f8f8f2;">inner</span> <span style="color: #66d9ef;">class</span> <span style="color: #a6e22e;">ActiveModel</span> <span style="color: #f8f8f2;">{</span>
+        <span style="color: #66d9ef;">fun</span> <span style="color: #a6e22e;">loadPositions</span><span style="color: #f8f8f2;">(positionAttributeLocation:</span> <span style="color: #f8f8f2;">Int)</span> <span style="color: #f8f8f2;">{</span>
+            <span style="color: #f8f8f2;">GL20.glVertexAttribPointer(positionAttributeLocation,</span> <span style="color: #ae81ff;">3</span><span style="color: #f8f8f2;">,</span> <span style="color: #f8f8f2;">GL11.GL_FLOAT,</span> <span style="color: #66d9ef;">false</span><span style="color: #f8f8f2;">,</span> <span style="color: #f8f8f2;">Vertex.VERTEX_SIZE,</span> <span style="color: #ae81ff;">0</span><span style="color: #f8f8f2;">)</span>
+        <span style="color: #f8f8f2;">}</span>
+
+        <span style="color: #66d9ef;">fun</span> <span style="color: #a6e22e;">loadNormals</span><span style="color: #f8f8f2;">(normalAttributeLocation:</span> <span style="color: #f8f8f2;">Int)</span> <span style="color: #f8f8f2;">{</span>
+            <span style="color: #f8f8f2;">GL20.glVertexAttribPointer(normalAttributeLocation,</span> <span style="color: #ae81ff;">3</span><span style="color: #f8f8f2;">,</span> <span style="color: #f8f8f2;">GL11.GL_FLOAT,</span> <span style="color: #66d9ef;">true</span><span style="color: #f8f8f2;">,</span> <span style="color: #f8f8f2;">Vertex.VERTEX_SIZE,</span> <span style="color: #f8f8f2;">Vertex.VECTOR_3_SIZE.toLong())</span>
+        <span style="color: #f8f8f2;">}</span>
+
+        <span style="color: #66d9ef;">fun</span> <span style="color: #a6e22e;">drawElements</span><span style="color: #f8f8f2;">()</span> <span style="color: #f8f8f2;">{</span>
+            <span style="color: #f8f8f2;">GL11.glDrawElements(GL11.GL_TRIANGLES,</span> <span style="color: #f8f8f2;">edges.size,</span> <span style="color: #f8f8f2;">GL11.GL_UNSIGNED_SHORT,</span> <span style="color: #ae81ff;">0</span><span style="color: #f8f8f2;">)</span>
+        <span style="color: #f8f8f2;">}</span>
+    <span style="color: #f8f8f2;">}</span>
+</pre>
+</td></tr>
+</tbody></table>
+</div>
+<br />
+What I love about this is that you cannot attempt to access the attribute buffer until it's bound as doing so is a compile time error. This is achievable in C++, but you would end up with either a stack allocated object that maintains the binding via RAII or a callback that passes in "ActiveModel".</div>
+<br /></div>
+<div>
+<h2>
+DSL Like Syntax</h2>
+This is the first language I've used that put any focus on <a href="https://kotlinlang.org/docs/reference/type-safe-builders.html" target="_blank">DSL like syntax</a>. Historically I've been very wary of such constructs, especially Ruby with it's ability to practically redefine the entire language. Kotlin has won me over to the concept by tying it in with a static and strict type system, giving me a configuration file that lives right in my source tree. Consider my procedural model definition DSL:<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: 0.1em 0.1em 0.1em 0.8em; border: solid gray; overflow: auto; padding: 0.2em 0.6em; width: auto;">
+<table><tbody>
+<tr><td><pre style="line-height: 125%; margin: 0;"> 1
+ 2
+ 3
+ 4
+ 5
+ 6
+ 7
+ 8
+ 9
+10
+11
+12
+13
+14
+15
+16
+17
+18
+19
+20</pre>
+</td><td><pre style="line-height: 125%; margin: 0;">        <span style="color: #66d9ef;">val</span> <span style="color: #f8f8f2;">halfEdgeGround</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">halfEdgeModel</span> <span style="color: #f8f8f2;">{</span>
+            <span style="color: #f8f8f2;">vertex</span> <span style="color: #f8f8f2;">{</span>
+                <span style="color: #f8f8f2;">position</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">Vector3f(-</span><span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">0f</span><span style="color: #f8f8f2;">,</span> <span style="color: #f8f8f2;">-</span><span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">)</span>
+                <span style="color: #f8f8f2;">normal</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">Vector3f(</span><span style="color: #ae81ff;">0f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">0f</span><span style="color: #f8f8f2;">)</span>
+            <span style="color: #f8f8f2;">}</span>
+            <span style="color: #f8f8f2;">vertex</span> <span style="color: #f8f8f2;">{</span>
+                <span style="color: #f8f8f2;">position</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">Vector3f(-</span><span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">0f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">)</span>
+                <span style="color: #f8f8f2;">normal</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">Vector3f(</span><span style="color: #ae81ff;">0f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">0f</span><span style="color: #f8f8f2;">)</span>
+            <span style="color: #f8f8f2;">}</span>
+            <span style="color: #f8f8f2;">vertex</span> <span style="color: #f8f8f2;">{</span>
+                <span style="color: #f8f8f2;">position</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">Vector3f(</span><span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">0f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">)</span>
+                <span style="color: #f8f8f2;">normal</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">Vector3f(</span><span style="color: #ae81ff;">0f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">0f</span><span style="color: #f8f8f2;">)</span>
+            <span style="color: #f8f8f2;">}</span>
+            <span style="color: #f8f8f2;">vertex</span> <span style="color: #f8f8f2;">{</span>
+                <span style="color: #f8f8f2;">position</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">Vector3f(</span><span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">0f</span><span style="color: #f8f8f2;">,</span> <span style="color: #f8f8f2;">-</span><span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">)</span>
+                <span style="color: #f8f8f2;">normal</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">Vector3f(</span><span style="color: #ae81ff;">0f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">1f</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">0f</span><span style="color: #f8f8f2;">)</span>
+            <span style="color: #f8f8f2;">}</span>
+            <span style="color: #f8f8f2;">face(</span><span style="color: #ae81ff;">0</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">1</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">2</span><span style="color: #f8f8f2;">)</span>
+            <span style="color: #f8f8f2;">face(</span><span style="color: #ae81ff;">0</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">2</span><span style="color: #f8f8f2;">,</span> <span style="color: #ae81ff;">3</span><span style="color: #f8f8f2;">)</span>
+        <span style="color: #f8f8f2;">}</span>
+</pre>
+</td></tr>
+</tbody></table>
+</div>
+I'm actively playing with various ways to structure these DSLs as far as when to use the callback syntax vs the equals sign. As I move forward I am using this anywhere I would want to use the builder pattern or even a config file.<br />
+<br />
+As a side note, HalfEdgeModel (and most classes I write a DSL for) are actually implemented as a Builder behind the scenes:<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: 0.1em 0.1em 0.1em 0.8em; border: solid gray; overflow: auto; padding: 0.2em 0.6em; width: auto;">
+<table><tbody>
+<tr><td><pre style="line-height: 125%; margin: 0;">1
+2
+3
+4
+5</pre>
+</td><td><pre style="line-height: 125%; margin: 0;"><span style="color: #66d9ef;">fun</span> <span style="color: #a6e22e;">halfEdgeModel</span><span style="color: #f8f8f2;">(cb:</span> <span style="color: #f8f8f2;">HalfEdgeModel.Builder.()</span> <span style="color: #f8f8f2;">-&gt;</span> <span style="color: #f8f8f2;">Unit):</span> <span style="color: #f8f8f2;">HalfEdgeModel</span> <span style="color: #f8f8f2;">{</span>
+    <span style="color: #66d9ef;">val</span> <span style="color: #f8f8f2;">builder</span> <span style="color: #f8f8f2;">=</span> <span style="color: #f8f8f2;">HalfEdgeModel.Builder()</span>
+    <span style="color: #f8f8f2;">builder.cb()</span>
+    <span style="color: #66d9ef;">return</span> <span style="color: #f8f8f2;">builder.build()</span>
+<span style="color: #f8f8f2;">}</span>
+</pre>
+</td></tr>
+</tbody></table>
+</div>
+<br />
+If you're new to this pattern, I recommend that you read <a href="https://kotlinlang.org/docs/reference/type-safe-builders.html" target="_blank">Kotlin's documentation</a>. They do a far better job at explaining the implementation than I can summarize in this post.<br />
+<h2>
+Conclusions</h2>
+</div>
+<div>
+Kotlin gets me close to an ideal language for writing hobby OpenGL programs. The lack of pass by value types and the lack of constexpr make the code still more verbose than I'd like, but DSLs and lambda blocks make some complex code an absolute joy to write.</div>

@@ -24,6 +24,9 @@ if __name__ == '__main__':
             content = entry.find('{http://www.w3.org/2005/Atom}content').text
             generated_filename = f'{published}-{title.replace(" ", "")}.html'
             joined_content=f'<!-- title: {title} -->\n{content}'
+            f = open(f'content/blog/{generated_filename}', 'x')
+            f.write(joined_content)
+            f.close()
             print('Title:', title)
             print('Published:', published)
             print('Generated Filename:', generated_filename)

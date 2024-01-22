@@ -1,0 +1,507 @@
+<!-- title: Ollie and your Android Activity Lifecycle -->
+Welcome to my second tutorial on connecting your Ollie to your own custom Android application. <a href="http://www.pux0r3.com/2015/01/getting-started-with-ollie-and-android.html" target="_blank">Last week</a>, I alluded to needing to properly handle the Ollie application lifecycle. I'll finally shed some light on what I meant!<br />
+If you have not yet paired Ollie with your phone, I recommend you <a href="http://www.pux0r3.com/2015/01/getting-started-with-ollie-and-android.html" target="_blank">read my last article</a>. I will not cover setting up your project or application manifest here.<br />
+<br />
+Now that I've verified that I can connect to an Ollie, I want to do so in a manner that I can eventually ship in a game. To do this, I have to perform the following tasks:<br />
+<ol>
+<li>I want to wrap connecting to Ollie so I just say "findRobot()" and everything will kick off.</li>
+<li>I want to handle the user backgrounding my Activity. When this happens, I will let go of my Ollie connection so another app can connect in my place.</li>
+<li>I want to be notified when Ollie disconnects on its own accord, and let my app reconnect in a reasonable way.</li>
+</ol>
+<h2>
+Application Architecture</h2>
+<div>
+A quick overview of why I'm writing this article. I wanted to create a game similar to "Boppit" where the user performs a series of actions dictated by a possibly malevolent robot overlord. If you fail to perform this series of instructions, you will be horribly punished with a lower score! I did this as part of "Hack Friday" at Sphero where I decided to vet our new public SDK against apps other than our demo applications and production driving app. In the process, I discovered that there were no internally developed instructions and took it upon myself to fill the gap whilst developing a fun game prototype.</div>
+<div>
+<br /></div>
+<div>
+To handle the connection lifecycle for this game, I've created a class "BoppitRobotProvider" to handle robots coming online and offline as well as echoing important application lifecycle events down to the DiscoveryAgent. This has an "IRobotManager" that I wrote a DiscoveryAgentLE version named "OllieRobotManager" and a fake implementation for testing I named "FakeRobotManager." I will only walk you through "OllieRobotManager" here. The unit tests I'll hide for now, as I don't want to write an article on Unit Testing in Android (in fact, I'm also taking this as an opportunity to develop my own TDD skillset, so it will be far less interesting than other internet resources on the subject).</div>
+<div>
+<br /></div>
+<div>
+Now that my disclaimers are out of the way, lets describe the basic interfaces!</div>
+<div>
+<br /></div>
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"><span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">interface</span> <span style="color: #a6e22e;">IRobotManager</span> <span style="color: #f92672;">{</span>
+ <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">addRobotConnectionHandler</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobotConnectionHandler</span> <span style="color: #f8f8f2;">robotConnectionHandler</span><span style="color: #f92672;">);</span>
+
+ <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">startDiscovery</span><span style="color: #f92672;">();</span>
+ <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">stopDiscovery</span><span style="color: #f92672;">();</span>
+
+ <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">disconnectAllRobots</span><span style="color: #f92672;">();</span>
+
+ <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">interface</span> <span style="color: #a6e22e;">IRobotConnectionHandler</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">robotConnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobot</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">);</span>
+  <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">robotDisconnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobot</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">);</span>
+ <span style="color: #f92672;">}</span>
+<span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+<div>
+As I mentioned above, I moved DiscoveryAgentLE into an interface (this interface!) so I could mock the basic lifecycle events. A quick description of what's happening:<br />
+<br />
+<ul>
+<li>addRobotConnectionHandler will add an interface to handle connecting and disconnecting of robots</li>
+<ul>
+<li>QuickNote: I should add a "removeRobotConnectionHandler" function, but I haven't used it yet so I won't write it. Never write code you don't use, and delete it when you find dead code!</li>
+</ul>
+<li>startDiscovery will look for robots</li>
+<li>stopDiscovery will stop looking</li>
+<li>disconnectAllRobots will disconnect everyone currently connected</li>
+<li>IRobotConnectionHandler is used for notifying listeners of connection events. We only care about:</li>
+<ul>
+<li>robotConnected - when a robot connects</li>
+<li>robotDisconnected - when that robot disconnects</li>
+</ul>
+</ul>
+<div>
+One thing you might notice, I'm passing around something called an "IRobot." This is just an empty interface at the current point in time. I wrote it during unit testing, and will grow it or remove it when necessary.</div>
+<div>
+<h2>
+Activity Lifecycle</h2>
+</div>
+</div>
+<div>
+Now that we have an interface to target, lets start handling the application lifecycle first! Hopefully the IRobotManager will make the underlying logic much more straightforward to you. Lets start writing the "BoppitRobotProvider"!</div>
+<div>
+<br /></div>
+<div>
+Lets start by saying that we'll handle&nbsp;IRobotConnectionHandler events, as we want to know when the robot come online and goes offline.</div>
+<div>
+<br /></div>
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"><span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">class</span> <span style="color: #a6e22e;">BoppitRobotProvider</span> <span style="color: #66d9ef;">implements</span> <span style="color: #f8f8f2;">IRobotManager</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">IRobotConnectionHandler</span>
+</pre>
+</div>
+<br />
+<div>
+If you were to build now, you'd get errors due to your not fulfilling the interface. If it really bugs you, you can throw an empty implementation for now. We'll also store some variables here for use later:<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">IRobotManager</span> <span style="color: #f8f8f2;">mRobotManager</span><span style="color: #f92672;">;</span>
+ <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">IRobot</span> <span style="color: #f8f8f2;">mRobot</span><span style="color: #f92672;">;</span>
+
+ <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">Vector</span><span style="color: #f92672;">&lt;</span><span style="color: #f8f8f2;">IRobotConnectionHandler</span><span style="color: #f92672;">&gt;</span> <span style="color: #f8f8f2;">mRobotConnectionHandlers</span> <span style="color: #f92672;">=</span> <span style="color: #66d9ef;">new</span> <span style="color: #f8f8f2;">Vector</span><span style="color: #f92672;">&lt;&gt;();</span>
+</pre>
+</div>
+<br />
+mRobotManager is self explanatory, this is the manager we're going to use. mRobot is the robot we'll have eventually, and mRobotConnectionHandlers is a list of IRobotConnectionHandlers we expose for the eventual Boppit application to respond to only the most basic connection events!<br />
+<br />
+We'll need a constructor:<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">public</span> <span style="color: #a6e22e;">BoppitRobotProvider</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobotManager</span> <span style="color: #f8f8f2;">robotManager</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+  <span style="color: #f8f8f2;">mRobotManager</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">robotManager</span><span style="color: #f92672;">;</span>
+  <span style="color: #f8f8f2;">mRobotManager</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">addRobotConnectionHandler</span><span style="color: #f92672;">(</span><span style="color: #66d9ef;">this</span><span style="color: #f92672;">);</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+And a few properties:<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">public</span> <span style="color: #f8f8f2;">IRobot</span> <span style="color: #a6e22e;">getRobot</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">return</span> <span style="color: #f8f8f2;">mRobot</span><span style="color: #f92672;">;</span>
+ <span style="color: #f92672;">}</span>
+
+ <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">addConnectionHandler</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobotConnectionHandler</span> <span style="color: #f8f8f2;">robotConnectionHandler</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+  <span style="color: #f8f8f2;">mRobotConnectionHandlers</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">add</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robotConnectionHandler</span><span style="color: #f92672;">);</span>
+ <span style="color: #f92672;">}</span>
+
+ <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">removeConnectionHandler</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobotConnectionHandler</span> <span style="color: #f8f8f2;">robotConnectionHandler</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+  <span style="color: #f8f8f2;">mRobotConnectionHandlers</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">remove</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robotConnectionHandler</span><span style="color: #f92672;">);</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+Before we get to the real meat and potatoes of this class!<br />
+<br />
+So, what will the first thing we want to do in our app? Find a robot of course! Your first instinct would probably just be to throw connection into the onCreate of your activity. You will almost inevitably move it somewhere else, whether you wait for streaming assets to load or you feel like making Ollie an extra optional step. For this reason, rather than just saying something like "handleOnCreate," I'll name this method a more generic "findRobot."<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">findRobot</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+  <span style="color: #f8f8f2;">mRobotManager</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">startDiscovery</span><span style="color: #f92672;">();</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+That was easy!<br />
+<br />
+Now we want to handle the most important part of the application lifecycle. You should never maintain a connection to Ollie in the background. The most important reason is that Android may decide to terminate your Activity at any time, and without warning, when it's not visible! The other reason is that you want to be a good citizen, it's rather inconsiderate to steal the Ollie connection all to yourself when another developer may be reading through this very tutorial and banging his head against the table whilst his Ollie is failing to connect! I'd recommend <a href="http://developer.android.com/guide/components/activities.html" target="_blank">this page</a> for more information on the Android Activity lifecycle.<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">handleOnPause</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+  <span style="color: #f8f8f2;">mRobotManager</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">stopDiscovery</span><span style="color: #f92672;">();</span>
+  <span style="color: #f8f8f2;">mRobotManager</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">disconnectAllRobots</span><span style="color: #f92672;">();</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+The goal would be to simply call this method when onPause is invoked. In onResume, you'd attempt to reconnect with "findRobot" if desired. Or perhaps you'd load another fragment first? As I said, you very rarely end up calling findRobot in onCreate in your final app. Another minor detail, the order of the function calls is minimally important. I call stopDiscovery() first so I don't get a robot connection come in after calling disconnectAllRobots(), on the backend this is all happily threaded.<br />
+<br />
+So now, lets handle a robot connecting.<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #a6e22e;">@Override</span>
+ <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">robotConnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobot</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">if</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">mRobot</span> <span style="color: #f92672;">==</span> <span style="color: #66d9ef;">null</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+   <span style="color: #f8f8f2;">mRobot</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">;</span>
+   <span style="color: #66d9ef;">for</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobotConnectionHandler</span> <span style="color: #f8f8f2;">connectionHandler</span> <span style="color: #f92672;">:</span> <span style="color: #f8f8f2;">mRobotConnectionHandlers</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+    <span style="color: #f8f8f2;">connectionHandler</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">robotConnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">);</span>
+   <span style="color: #f92672;">}</span>
+   <span style="color: #f8f8f2;">mRobotManager</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">stopDiscovery</span><span style="color: #f92672;">();</span>
+  <span style="color: #f92672;">}</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+The idea behind this is that you'll have one robot you'll care about. If you already have a robot, ignore the new one! If you actually get a robot, then you'll stop looking and play with your happy Ollie. The SDK acts like this by default for now, but there are no guarantees in the future (and it's still recommended that you stop discovery).<br />
+<br />
+Now, one last detail and you've reached the end of handling the basic Activity lifecycle.<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #a6e22e;">@Override</span>
+ <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">robotDisconnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobot</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">if</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robot</span> <span style="color: #f92672;">==</span> <span style="color: #f8f8f2;">mRobot</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+   <span style="color: #f8f8f2;">mRobot</span> <span style="color: #f92672;">=</span> <span style="color: #66d9ef;">null</span><span style="color: #f92672;">;</span>
+   <span style="color: #66d9ef;">for</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobotConnectionHandler</span> <span style="color: #f8f8f2;">connectionHandler</span> <span style="color: #f92672;">:</span> <span style="color: #f8f8f2;">mRobotConnectionHandlers</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+    <span style="color: #f8f8f2;">connectionHandler</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">robotDisconnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">);</span>
+   <span style="color: #f92672;">}</span>
+  <span style="color: #f92672;">}</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+This simply lets go of a robot we've connected to and informs the application. We don't have to clear the robot anywhere else as "disconnectAllRobots" will raise this message (as you'll see soon).<br />
+<br />
+Now, a quick interface. This is identical to the one in IRobotManager, but I like not having a user of this class having to know about IRobotManager.<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">interface</span> <span style="color: #a6e22e;">IRobotConnectionHandler</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">robotConnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobot</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">);</span>
+  <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">robotDisconnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobot</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">);</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+And you're ready to actually hook it up into DiscoveryAgentLE!<br />
+<h2>
+Discovery Agent</h2>
+</div>
+<div>
+Until now, you've written no SDK code. This is because the SDK itself is incredibly generic. It lets you connect to Ollie and Sphero, and it lets you connect one to many robots of any single type. All this generalization is a bit complicated if you just start slinging it around your Activity all willy nilly!</div>
+<div>
+<br /></div>
+<div>
+So, to start things off, it's time to create our OllieRobotManager:</div>
+<div>
+<br /></div>
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"><span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">class</span> <span style="color: #a6e22e;">OllieRobotManager</span> <span style="color: #66d9ef;">implements</span> <span style="color: #f8f8f2;">IRobotManager</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">RobotChangedStateListener</span>
+</pre>
+</div>
+<br />
+<div>
+You may remember IRobotManager from before, it represents the basic operations you'll perform on a DiscoveryAgentLE. The RobotChangedStateListener you may remember from my <a href="http://www.pux0r3.com/2015/01/getting-started-with-ollie-and-android.html" target="_blank">last tutorial</a>. This is how we know what's happening with all these robots flying around the room!<br />
+<br />
+Now lets get the basic private fields out of the way. I always hate it when other tutorials skip these!<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">private</span> <span style="color: #66d9ef;">static</span> <span style="color: #66d9ef;">final</span> <span style="color: #f8f8f2;">String</span> <span style="color: #f8f8f2;">LOG_TAG</span> <span style="color: #f92672;">=</span> <span style="color: #e6db74;">"OllieRobotManager"</span><span style="color: #f92672;">;</span>
+
+ <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">Context</span> <span style="color: #f8f8f2;">mContext</span><span style="color: #f92672;">;</span>
+ <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">DiscoveryAgent</span> <span style="color: #f8f8f2;">mDiscoveryAgent</span><span style="color: #f92672;">;</span>
+ <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">RobotWrapper</span> <span style="color: #f8f8f2;">mRobot</span><span style="color: #f92672;">;</span>
+
+ <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">Vector</span><span style="color: #f92672;">&lt;</span><span style="color: #f8f8f2;">IRobotConnectionHandler</span><span style="color: #f92672;">&gt;</span> <span style="color: #f8f8f2;">mRobotConnectionHandlers</span> <span style="color: #f92672;">=</span> <span style="color: #66d9ef;">new</span> <span style="color: #f8f8f2;">Vector</span><span style="color: #f92672;">&lt;&gt;();</span>
+</pre>
+</div>
+<br />
+A quick roundup off all these crazy variables I just dumped on your head:<br />
+<br />
+<ul>
+<li>LOG_TAG is just the first parameter I pass to the <a href="http://developer.android.com/reference/android/util/Log.html" target="_blank">Android Logging subsystem</a>. I dislike seeing any sort of magic numbers in my code, even string literals!</li>
+<li>mContext is the application context, it's necessary to start the DiscoveryAgent (as well as virtually anything else in Android).</li>
+<li>mRobot is the robot I'm getting. You'll see later on that this implements IRobot, and pretty much just provides you with a ConvenienceRobot. I highly recommend that your final application does not upcast IRobot (this and any other form of reflection should generally be discouraged in any code), but I wrote this tutorial the moment I had the basic Android lifecycle under control!</li>
+<li>mRobotConnectionHandlers is, once again, our friendly neighborhood vector of callbacks.</li>
+</ul>
+<div>
+Whew that was a mouth... err... keyboard full! Lets get to acquiring our DiscoveryAgent:</div>
+<div>
+<br /></div>
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">public</span> <span style="color: #a6e22e;">OllieRobotManager</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">Context</span> <span style="color: #f8f8f2;">context</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+  <span style="color: #f8f8f2;">mContext</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">context</span><span style="color: #f92672;">;</span>
+  <span style="color: #f8f8f2;">mDiscoveryAgent</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">DiscoveryAgentLE</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">getInstance</span><span style="color: #f92672;">();</span>
+  <span style="color: #f8f8f2;">mDiscoveryAgent</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">addRobotStateListener</span><span style="color: #f92672;">(</span><span style="color: #66d9ef;">this</span><span style="color: #f92672;">);</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+<div>
+As you can see, we're opting for a DiscoveryAgentLE. This is the DiscoveryAgent to use for Ollie. We're also choosing to add ourselves as a state listener, but I won't get to that implementation until the end of this tutorial (you know, save the best for last and all that jazz).<br />
+<br />
+There is pretty much no reason for me to even post this other than preventing you from tearing your hair out for a second when you hit build and see nothing but errors:<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #a6e22e;">@Override</span>
+ <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">addRobotConnectionHandler</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobotConnectionHandler</span> <span style="color: #f8f8f2;">robotConnectionHandler</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+  <span style="color: #f8f8f2;">mRobotConnectionHandlers</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">add</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robotConnectionHandler</span><span style="color: #f92672;">);</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+As you can guess, we need to register our event handlers.<br />
+<br />
+So our next task is to start discovery.<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #a6e22e;">@Override</span>
+ <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">startDiscovery</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">try</span> <span style="color: #f92672;">{</span>
+   <span style="color: #f8f8f2;">mDiscoveryAgent</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">startDiscovery</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">mContext</span><span style="color: #f92672;">);</span>
+  <span style="color: #f92672;">}</span> <span style="color: #66d9ef;">catch</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">DiscoveryException</span> <span style="color: #f8f8f2;">e</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+   <span style="color: #f8f8f2;">Log</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">e</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">LOG_TAG</span><span style="color: #f92672;">,</span> <span style="color: #e6db74;">"Failed to start discovery!"</span><span style="color: #f92672;">);</span>
+   <span style="color: #f8f8f2;">e</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">printStackTrace</span><span style="color: #f92672;">();</span>
+  <span style="color: #f92672;">}</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+I would like to handle this error better, but even the example code in the SDK does this! The most I could really do is add a boolean to the return type if it fails to start discovery, but that's a task for future me. Future me doesn't like past me...<br />
+<br />
+This is another self explanatory line:<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #a6e22e;">@Override</span>
+ <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">stopDiscovery</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+  <span style="color: #f8f8f2;">mDiscoveryAgent</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">stopDiscovery</span><span style="color: #f92672;">();</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+Simply stop discovery when we want to stop discovery.<br />
+<br />
+This line is pretty important. The SDK doesn't have a "disconnect everybody" call at the moment, but you really should perform this task to maintain good citizen status amongst your users.<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #a6e22e;">@Override</span>
+ <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">disconnectAllRobots</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">for</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">Robot</span> <span style="color: #f8f8f2;">robot:</span> <span style="color: #f8f8f2;">mDiscoveryAgent</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">getConnectedRobots</span><span style="color: #f92672;">())</span> <span style="color: #f92672;">{</span>
+   <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">sleep</span><span style="color: #f92672;">();</span>
+  <span style="color: #f92672;">}</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+As you can see, we go through and ensure that everyone's disconnected. I do this just for my own self assurance that, even if one robot slips through and connects without me taking note, everyone is put to sleep when my app exits (you can connect to more than one robot).<br />
+<br />
+The other item of note is my choice of sleep() over disconnect(). disconnect() will terminate your connection to the robot, but the robot will be left on (and colored magenta) afterwards. To your users, this will look like an error. If you were to call sleep() then disconnect(), you'd still be left in the disconnected but on state due to the way threading and message handling works. Do not fret, when the robot goes to sleep you'll get a disconnection message none the less!<br />
+<br />
+Now time for the actual connection! Be warned, this is quite the mouthful (keyboard full?):<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #a6e22e;">@Override</span>
+ <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">changedState</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">Robot</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">RobotChangedStateNotificationType</span> <span style="color: #f8f8f2;">robotChangedStateNotificationType</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">switch</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robotChangedStateNotificationType</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+   <span style="color: #66d9ef;">case</span> <span style="color: #f8f8f2;">Online:</span>
+    <span style="color: #f8f8f2;">mRobot</span> <span style="color: #f92672;">=</span> <span style="color: #66d9ef;">new</span> <span style="color: #f8f8f2;">RobotWrapper</span><span style="color: #f92672;">(</span><span style="color: #66d9ef;">new</span> <span style="color: #f8f8f2;">Ollie</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">));</span>
+    <span style="color: #f8f8f2;">notfyRobotConnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">mRobot</span><span style="color: #f92672;">);</span>
+    <span style="color: #66d9ef;">break</span><span style="color: #f92672;">;</span>
+
+   <span style="color: #66d9ef;">case</span> <span style="color: #f8f8f2;">Disconnected:</span>
+    <span style="color: #f8f8f2;">notifyRobotDisconnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">mRobot</span><span style="color: #f92672;">);</span>
+    <span style="color: #f8f8f2;">mRobot</span> <span style="color: #f92672;">=</span> <span style="color: #66d9ef;">null</span><span style="color: #f92672;">;</span>
+    <span style="color: #66d9ef;">break</span><span style="color: #f92672;">;</span>
+  <span style="color: #f92672;">}</span>
+ <span style="color: #f92672;">}</span>
+
+ <span style="color: #66d9ef;">private</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">notfyRobotConnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">RobotWrapper</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">for</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobotConnectionHandler</span> <span style="color: #f8f8f2;">connectionHandler:</span> <span style="color: #f8f8f2;">mRobotConnectionHandlers</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+   <span style="color: #f8f8f2;">connectionHandler</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">robotConnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">);</span>
+  <span style="color: #f92672;">}</span>
+ <span style="color: #f92672;">}</span>
+
+ <span style="color: #66d9ef;">private</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">notifyRobotDisconnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">RobotWrapper</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">for</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobotConnectionHandler</span> <span style="color: #f8f8f2;">connectionHandler:</span> <span style="color: #f8f8f2;">mRobotConnectionHandlers</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+   <span style="color: #f8f8f2;">connectionHandler</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">robotDisconnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">);</span>
+  <span style="color: #f92672;">}</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+Despite being a wall of text, I'm sure you can easily tease apart the meaning. I'll start at the bottom as that's the easiest:<br />
+notifyRobotConnected and notifyRobotDisconnected simply tell all our listeners about what's going on!<br />
+<br />
+So, now lets jump up into changedState. As you may recall, this method is invoked whenever the state of a connecting robot changes. There are many more that can be returned (and if you want to make a fancy connection screen, you'll care about all of them), but Online and Disconnected are the two most important.<br />
+<br />
+The Online case happens after we've successfully connected to a robot, it tells us that we have a new buddy we can start talking to! I quickly wrap it up in something that conforms to the IRobot interface (an empty interface for now), cache it, and tell the world about my shiny new present!<br />
+<br />
+Disconnected is raised whenever a robot disconnects. We forget about the robot we've been maintaining a connection to, and tell the world about our tragic loss.<br />
+<br />
+And that's it! You can connect to a robot! Well, outside of my simple RobotWrapper:<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">class</span> <span style="color: #a6e22e;">RobotWrapper</span> <span style="color: #66d9ef;">implements</span> <span style="color: #f8f8f2;">IRobot</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">private</span> <span style="color: #66d9ef;">final</span> <span style="color: #f8f8f2;">ConvenienceRobot</span> <span style="color: #f8f8f2;">mRobot</span><span style="color: #f92672;">;</span>
+
+  <span style="color: #66d9ef;">public</span> <span style="color: #a6e22e;">RobotWrapper</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">ConvenienceRobot</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+   <span style="color: #f8f8f2;">mRobot</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">;</span>
+  <span style="color: #f92672;">}</span>
+
+  <span style="color: #66d9ef;">public</span> <span style="color: #f8f8f2;">ConvenienceRobot</span> <span style="color: #a6e22e;">getRobot</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+   <span style="color: #66d9ef;">return</span> <span style="color: #f8f8f2;">mRobot</span><span style="color: #f92672;">;</span>
+  <span style="color: #f92672;">}</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+And I suppose I should actually show you where to drop this into an activity...<br />
+<h2>
+Activity</h2>
+</div>
+</div>
+<div>
+And now for the grand finale! You can shove this right into your Activity from the last tutorial. A quick breakdown of what I'll show you:</div>
+<div>
+<ul>
+<li>in onResume we'll connect to a robot. I know I told you that you'll rarely do this by the end of your project, but this is a lowly tutorial!</li>
+<li>in onPause, we'll kick off the pausing logic we wrote previously.</li>
+<li>when a robot connects, we'll turn it green. This is simply because green is the best color.</li>
+<li>when a robot disconnects AND we're not paused, we'll find a new one!</li>
+</ul>
+<div>
+Lets start by creating the variables I first mentioned:</div>
+</div>
+<div>
+<br /></div>
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">IRobot</span> <span style="color: #f8f8f2;">mRobot</span><span style="color: #f92672;">;</span>
+ <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">BoppitRobotProvider</span> <span style="color: #f8f8f2;">mRobotProvider</span><span style="color: #f92672;">;</span>
+
+ <span style="color: #66d9ef;">private</span> <span style="color: #66d9ef;">boolean</span> <span style="color: #f8f8f2;">mPaused</span><span style="color: #f92672;">;</span>
+</pre>
+</div>
+<br />
+<div>
+And starting to work in onCreate:<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #a6e22e;">@Override</span>
+ <span style="color: #66d9ef;">protected</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">onCreate</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">Bundle</span> <span style="color: #f8f8f2;">savedInstanceState</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">super</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">onCreate</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">savedInstanceState</span><span style="color: #f92672;">);</span>
+  <span style="color: #f8f8f2;">setContentView</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">R</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">layout</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">activity_connection</span><span style="color: #f92672;">);</span>
+
+  <span style="color: #f8f8f2;">mRobotProvider</span> <span style="color: #f92672;">=</span> <span style="color: #66d9ef;">new</span> <span style="color: #f8f8f2;">BoppitRobotProvider</span><span style="color: #f92672;">(</span><span style="color: #66d9ef;">new</span> <span style="color: #f8f8f2;">OllieRobotManager</span><span style="color: #f92672;">(</span><span style="color: #66d9ef;">this</span><span style="color: #f92672;">));</span>
+  <span style="color: #f8f8f2;">mRobotProvider</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">addConnectionHandler</span><span style="color: #f92672;">(...</span>
+</pre>
+</div>
+<br />
+But I'll hold off on actually handling the robot connection for the moment.<br />
+<br />
+Our onResume is simple:<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #a6e22e;">@Override</span>
+ <span style="color: #66d9ef;">protected</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">onResume</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">super</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">onResume</span><span style="color: #f92672;">();</span>
+  <span style="color: #f8f8f2;">mPaused</span> <span style="color: #f92672;">=</span> <span style="color: #66d9ef;">false</span><span style="color: #f92672;">;</span>
+
+  <span style="color: #f8f8f2;">IRobot</span> <span style="color: #f8f8f2;">robot</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">mRobotProvider</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">getRobot</span><span style="color: #f92672;">();</span>
+  <span style="color: #66d9ef;">if</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robot</span> <span style="color: #f92672;">!=</span> <span style="color: #66d9ef;">null</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+   <span style="color: #f8f8f2;">setRobot</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">);</span>
+  <span style="color: #f92672;">}</span>
+  <span style="color: #66d9ef;">else</span> <span style="color: #f92672;">{</span>
+   <span style="color: #f8f8f2;">mRobotProvider</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">findRobot</span><span style="color: #f92672;">();</span>
+  <span style="color: #f92672;">}</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+I check to see if we have a robot already (we shouldn't in this app, but imagine if there were able to share this BoppitRobotProvider between activites...), then set it! Otherwise, it's time to start looking for one. Also, we must remember to store the fact that we're no longer paused.<br />
+<br />
+This brings us to onPause. There isn't much to be done here:<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #a6e22e;">@Override</span>
+ <span style="color: #66d9ef;">protected</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">onPause</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+  <span style="color: #66d9ef;">super</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">onPause</span><span style="color: #f92672;">();</span>
+  <span style="color: #f8f8f2;">mPaused</span> <span style="color: #f92672;">=</span> <span style="color: #66d9ef;">true</span><span style="color: #f92672;">;</span>
+
+  <span style="color: #f8f8f2;">mRobotProvider</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">handleOnPause</span><span style="color: #f92672;">();</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+As you can see, we just store the fact that we are paused and call into all that fancy code we wrote earlier.<br />
+<br />
+Of course, you're probably wondering why we're storing whether or not we're paused as well as what I hid behind the "..." above. So, lets finish adding out connection handler!<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;">  <span style="color: #f8f8f2;">mRobotProvider</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">addConnectionHandler</span><span style="color: #f92672;">(</span><span style="color: #66d9ef;">new</span> <span style="color: #f8f8f2;">BoppitRobotProvider</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">IRobotConnectionHandler</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+   <span style="color: #a6e22e;">@Override</span>
+   <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">robotConnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobot</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+    <span style="color: #f8f8f2;">setRobot</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">);</span>
+   <span style="color: #f92672;">}</span>
+
+   <span style="color: #a6e22e;">@Override</span>
+   <span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">robotDisconnected</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobot</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+    <span style="color: #f8f8f2;">setRobot</span><span style="color: #f92672;">(</span><span style="color: #66d9ef;">null</span><span style="color: #f92672;">);</span>
+
+    <span style="color: #66d9ef;">if</span> <span style="color: #f92672;">(!</span><span style="color: #f8f8f2;">mPaused</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+     <span style="color: #f8f8f2;">mRobotProvider</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">findRobot</span><span style="color: #f92672;">();</span>
+    <span style="color: #f92672;">}</span>
+   <span style="color: #f92672;">}</span>
+  <span style="color: #f92672;">});</span>
+</pre>
+</div>
+<br />
+robotConnected is relatively straightforward, we just set the robot when we get one.<br />
+<br />
+robotDisconnected is where the fun is. We forget about our robot, and try to find a new one. But here's where it gets tricky: if you remember back to the onPause handler we wrote, we simply put all our robots to sleep when the Activity pauses. Some time after that, the robot goes to sleep and we get a callback saying that it's gone. If we're paused, we don't want to try to connect again (the SDK will let us until the activity is actually destroyed). So we store a flag to remind ourselves that we're no longer interested in connecting.<br />
+<br />
+And that's everything!<br />
+<br />
+Ok, fine, I'll also turn the robot green.<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">private</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">setRobot</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">IRobot</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+  <span style="color: #f8f8f2;">mRobot</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">;</span>
+  <span style="color: #66d9ef;">if</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">mRobot</span> <span style="color: #f92672;">!=</span> <span style="color: #66d9ef;">null</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+   <span style="color: #f8f8f2;">ConvenienceRobot</span> <span style="color: #f8f8f2;">convenienceRobot</span> <span style="color: #f92672;">=</span> <span style="color: #f92672;">((</span><span style="color: #f8f8f2;">OllieRobotManager</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">RobotWrapper</span><span style="color: #f92672;">)</span><span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">).</span><span style="color: #a6e22e;">getRobot</span><span style="color: #f92672;">();</span>
+   <span style="color: #f8f8f2;">convenienceRobot</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">setLed</span><span style="color: #f92672;">(</span><span style="color: #ae81ff;">0</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">f</span><span style="color: #f92672;">,</span> <span style="color: #ae81ff;">1</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">f</span><span style="color: #f92672;">,</span> <span style="color: #ae81ff;">0</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">f</span><span style="color: #f92672;">);</span>
+  <span style="color: #f92672;">}</span>
+ <span style="color: #f92672;">}</span>
+</pre>
+</div>
+<br />
+As I stated before, the IRobot interface needs to be actually created or replaced. We'll see where my unit tests take me as I get ready to make a game.<br />
+<br />
+Happy hacking, and may the source be with you!</div>

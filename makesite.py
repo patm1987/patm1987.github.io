@@ -204,7 +204,7 @@ def main():
                page_layout, **params)
 
     # Create blogs.
-    blog_posts = make_pages('content/blog/*.md',
+    blog_posts = make_pages('content/blog/*',
                             '_site/blog/{{ slug }}/index.html',
                             post_layout, blog='blog', **params)
     news_posts = make_pages('content/news/*.html',

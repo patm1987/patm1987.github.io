@@ -1,0 +1,295 @@
+<!-- title: Getting Started with Ollie and Android -->
+
+Welcome internet denizens! I am an engineer on the Ollie project, and an avid supporter of the maker movement. I've decided to allocate some of my time to ensuring that you can all jump on the Bluetooth LE robot revolution! In particular, I plan on making a project entirely in our public SDK to work out any idiosyncrasies people on the outside might run into. In the process, I want to ensure that the public can follow in my footsteps.<br />
+<br />
+Internally, we can only work on so much software. We don't even scratch the surface of what's possible with our robots! For that, I hope to see the creative juices of the internet kick into action. Do you make Ollie jump in excitement when you walk in your house? Maybe it's the handlebars of a motorcycle, or even the flight yolk of an airplane.<br />
+<br />
+All great exploits have a humble beginning. To get started, I'd recommend acquiring the following packages:<br />
+<br />
+<ul>
+<li><a href="http://developer.android.com/tools/studio/index.html" target="_blank">Android Studio</a></li>
+<li>An Android device <a href="http://developer.android.com/tools/device.html" target="_blank">configured for development</a></li>
+<li>The latest <a href="https://github.com/orbotix/Sphero-Android-SDK/tree/beta" target="_blank">Sphero SDK</a> - Beta Branch</li>
+<ul>
+<li>Note: master will <b>NOT</b>&nbsp;work!</li>
+</ul>
+<li>An <a href="http://store.gosphero.com/products/ollie" target="_blank">Ollie</a></li>
+<ul>
+<li>Or perhaps <a href="http://store.gosphero.com/products/darkside-ollie" target="_blank">this one</a>, for you mad scientists!</li>
+</ul>
+</ul>
+<div>
+For this tutorial, I will walk you through the basic steps necessary to connect to a robot. It does not handle any Android lifecycle events, reconnecting, or any other topics you may want before shipping your first Ollie project. If this post gets a good reception, I'll continue to update with my progress through a game.</div>
+<div>
+<br /></div>
+<div>
+To start out, lets create a project in Android Studio. I'll give mine a cool name like "GettingStarted"</div>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEixZO90w_Gv6Mx_nj7kSI3FG4E6qIXZOI8Wb5yVhj92thR-dVSCRSPPbQafJ69M7qq_EjEVupQr46vOD3o4dRs1sLdtA8cecS1zMSCJGIvBle85khqtq4S1vIp2W84Fjo5bN-XSGKh_SfjR/s1600/NewProject.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEixZO90w_Gv6Mx_nj7kSI3FG4E6qIXZOI8Wb5yVhj92thR-dVSCRSPPbQafJ69M7qq_EjEVupQr46vOD3o4dRs1sLdtA8cecS1zMSCJGIvBle85khqtq4S1vIp2W84Fjo5bN-XSGKh_SfjR/s1600/NewProject.png" height="204" width="320" /></a></div>
+<div class="separator" style="clear: both; text-align: left;">
+Then I'll say I'm targeting Android 4.4. Talking to members of the SDK team, 4.3 <i>should</i>&nbsp;be supported and 4.2 <i>may</i>&nbsp;work. All the devices I own are on 4.4, and it's what I test on internally most often, so I'm choosing that to minimize any odd/esoteric issues with earlier BLE stacks.</div>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhyPvUVrSc-3ThY1q1RQwg19H0w06NaeUcXEKOOQ-UtIL4JrbaCbqgcpIzxnlKG9yDROHI1StJ__PrNauc5FKyJVis6e4KwsYrqVKyhJAGT1PwaH5gbQvs1kH4wl2KdVuC6Igtidjp9cIVW/s1600/Screen+Shot+2015-01-16+at+2.10.32+PM.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhyPvUVrSc-3ThY1q1RQwg19H0w06NaeUcXEKOOQ-UtIL4JrbaCbqgcpIzxnlKG9yDROHI1StJ__PrNauc5FKyJVis6e4KwsYrqVKyhJAGT1PwaH5gbQvs1kH4wl2KdVuC6Igtidjp9cIVW/s1600/Screen+Shot+2015-01-16+at+2.10.32+PM.png" height="227" width="320" /></a></div>
+<div class="separator" style="clear: both; text-align: left;">
+For now I'm going to just use a "Blank Activity." Whatever you choose is up to your final app!</div>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgb-ZfCZ6ekuXRqr-BgNVWyMyUuRIBFShNBIb0EFBI5uvwAfxyV9xQmuBwuH3FXwYpLOAW1H4M8tuQVUTABGx2SPBf1xUOzD4z9dv2BTtzhcNMMX3HshR8mCLHg3-BO6gpGxW39A6cKu5Sg/s1600/Screen+Shot+2015-01-16+at+2.12.39+PM.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEgb-ZfCZ6ekuXRqr-BgNVWyMyUuRIBFShNBIb0EFBI5uvwAfxyV9xQmuBwuH3FXwYpLOAW1H4M8tuQVUTABGx2SPBf1xUOzD4z9dv2BTtzhcNMMX3HshR8mCLHg3-BO6gpGxW39A6cKu5Sg/s1600/Screen+Shot+2015-01-16+at+2.12.39+PM.png" height="227" width="320" /></a></div>
+<div class="separator" style="clear: both; text-align: left;">
+Lets choose a default name like "GettingStartedActivity."</div>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhOny6FfBqPP62BGRfp2teL6XoCGOA9b6ncYsAI_fjw_e2gD4ArWfETJYm6blED8hPdnMl8kp6eIKJGMTtVjLEz7uw7rZypWiOwcpfYbjM_zYCDP_v8uQbk_BsdOYcCSdQTFjEKFMnwU3Yy/s1600/Screen+Shot+2015-01-16+at+2.14.38+PM.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEhOny6FfBqPP62BGRfp2teL6XoCGOA9b6ncYsAI_fjw_e2gD4ArWfETJYm6blED8hPdnMl8kp6eIKJGMTtVjLEz7uw7rZypWiOwcpfYbjM_zYCDP_v8uQbk_BsdOYcCSdQTFjEKFMnwU3Yy/s1600/Screen+Shot+2015-01-16+at+2.14.38+PM.png" height="227" width="320" /></a></div>
+<div class="separator" style="clear: both; text-align: left;">
+The file we'll be most interested is our fancy new "GettingStartedActivity.java."</div>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEioShCO7vAbAIBsiwq06TEXTXuqSHXK_lXv2FOHVSLAUUF-V2nxn1MspumAlP6dn8hKDnR_0y98SSVvZUHqUzVUeRf9PdQ7_Y2h6t1PTTdOJEk5Pd2UJMzIku8F-kqE-QzQXB3mMo9kFb2M/s1600/Screen+Shot+2015-01-16+at+2.18.15+PM.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEioShCO7vAbAIBsiwq06TEXTXuqSHXK_lXv2FOHVSLAUUF-V2nxn1MspumAlP6dn8hKDnR_0y98SSVvZUHqUzVUeRf9PdQ7_Y2h6t1PTTdOJEk5Pd2UJMzIku8F-kqE-QzQXB3mMo9kFb2M/s1600/Screen+Shot+2015-01-16+at+2.18.15+PM.png" height="185" width="320" /></a></div>
+<div class="separator" style="clear: both; text-align: left;">
+<br /></div>
+<div class="separator" style="clear: both; text-align: left;">
+But before we write anything, we need to bring in "RobotLibrary.jar" to communicate with Ollie. To do this, right click on "app" and select "Open Module Settings."</div>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjr0pUIZqu3C2wkYTJfGIFhId4Bfce3QwIfXAM4p55dySk02sHK_Ui7dJVD3R29M9nVbrzrCLkiojNgJx43-C_IWrSFM4o3pks-32vCVuKsBekVDbbE23APLcNY00mZPij-5Z4NSi9eZoIO/s1600/Screen+Shot+2015-01-16+at+2.20.32+PM.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjr0pUIZqu3C2wkYTJfGIFhId4Bfce3QwIfXAM4p55dySk02sHK_Ui7dJVD3R29M9nVbrzrCLkiojNgJx43-C_IWrSFM4o3pks-32vCVuKsBekVDbbE23APLcNY00mZPij-5Z4NSi9eZoIO/s1600/Screen+Shot+2015-01-16+at+2.20.32+PM.png" height="320" width="160" /></a></div>
+<div class="separator" style="clear: both; text-align: left;">
+<br /></div>
+<div class="separator" style="clear: both; text-align: left;">
+Then click the "+" in the upper left and select "Import .JAR or .AAR Package."</div>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjnP8w-3IVfjoZDAj1A7m5pNzwXjsdd1-pEr1grdI7tXRNeWONe69li1odGmCZpIRIHQoy_jfbzf3TuPU51Y_wZ-jkd0aVTsvZIzz6Tl_f7h9CIsM9ZQT-1PNLrVi4fnzo7f2D7Hof5hbjP/s1600/Screen+Shot+2015-01-16+at+2.21.48+PM.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEjnP8w-3IVfjoZDAj1A7m5pNzwXjsdd1-pEr1grdI7tXRNeWONe69li1odGmCZpIRIHQoy_jfbzf3TuPU51Y_wZ-jkd0aVTsvZIzz6Tl_f7h9CIsM9ZQT-1PNLrVi4fnzo7f2D7Hof5hbjP/s1600/Screen+Shot+2015-01-16+at+2.21.48+PM.png" height="216" width="320" /></a></div>
+<div class="separator" style="clear: both; text-align: left;">
+<br /></div>
+<div class="separator" style="clear: both; text-align: left;">
+Locate the "RobotLibrary.jar" that you downloaded before, and click "Finish."</div>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiHeCffW_KnFqRsbh0W1_3zJDAjtoEDVCWCwHHvRDzi89qFF99bIyBjN3Q9xdePJgz1Lc6Ga_wlszhpe-eVInXzcrUhNftXUwCtazHETmScI51SrZO2McVht35ygzRZsHR5A2QwYBZqDs_n/s1600/Screen+Shot+2015-01-16+at+2.25.27+PM.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEiHeCffW_KnFqRsbh0W1_3zJDAjtoEDVCWCwHHvRDzi89qFF99bIyBjN3Q9xdePJgz1Lc6Ga_wlszhpe-eVInXzcrUhNftXUwCtazHETmScI51SrZO2McVht35ygzRZsHR5A2QwYBZqDs_n/s1600/Screen+Shot+2015-01-16+at+2.25.27+PM.png" height="191" width="320" /></a></div>
+<div class="separator" style="clear: both; text-align: left;">
+<br /></div>
+<div class="separator" style="clear: both; text-align: left;">
+Now you should have the "RobotLibrary" module in Android Studio. The last thing we want to do is make our project depend on it. For those of you just starting out, this means that our project needs RobotLibrary to work (which, if you plan on driving Ollie, it does). Select "app" under "Modules" on the left. Then select the "Dependencies" tab and click the "+" on the bottom to setup a "Module dependency."</div>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4ygwUa0_moS3F4f_4mH7OSBK7iklNlgQ4G7X1dMdJlQt6X7aitR0L9nhES5rTmbc36bOIxOXNCqV9Y8VcU4PyNotpuib5QmhS00fd6mucVkN9RRVE9W1PZl7vNM9rI2gVmVW8x4_FFdBP/s1600/Screen+Shot+2015-01-16+at+2.29.38+PM.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh4ygwUa0_moS3F4f_4mH7OSBK7iklNlgQ4G7X1dMdJlQt6X7aitR0L9nhES5rTmbc36bOIxOXNCqV9Y8VcU4PyNotpuib5QmhS00fd6mucVkN9RRVE9W1PZl7vNM9rI2gVmVW8x4_FFdBP/s1600/Screen+Shot+2015-01-16+at+2.29.38+PM.png" height="183" width="320" /></a></div>
+<div class="separator" style="clear: both; text-align: left;">
+<br /></div>
+<div class="separator" style="clear: both; text-align: left;">
+Choose ":RobotLibrary" and you should be ready to get to the fun part!</div>
+<div class="separator" style="clear: both; text-align: center;">
+<a href="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEja4rxdP-wrUOuRkmlYmqKiC1BOKX6_KWvcGcg3H4zZb6xZheFDj3yHHNcvc_PCrtbAcwXVNyMvJvK7Roe7wnfEiCPTO6AUpqoJNE0Bya03j1QnssE3llwSPyPMARSWCu83mKej5MHzWAVq/s1600/Screen+Shot+2015-01-16+at+2.30.43+PM.png" imageanchor="1" style="margin-left: 1em; margin-right: 1em;"><img border="0" src="https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEja4rxdP-wrUOuRkmlYmqKiC1BOKX6_KWvcGcg3H4zZb6xZheFDj3yHHNcvc_PCrtbAcwXVNyMvJvK7Roe7wnfEiCPTO6AUpqoJNE0Bya03j1QnssE3llwSPyPMARSWCu83mKej5MHzWAVq/s1600/Screen+Shot+2015-01-16+at+2.30.43+PM.png" height="320" width="319" /></a></div>
+<div class="separator" style="clear: both; text-align: left;">
+<br /></div>
+<div class="separator" style="clear: both; text-align: left;">
+Now I'll cover the basics on how to connect to an Ollie. I'd like to stress that I won't cover handling the application lifecycle. I'll include some notes at the end, and leave it as an exercise to the user until I'm bitten by the literary bug again.</div>
+<div class="separator" style="clear: both; text-align: left;">
+<br /></div>
+<div class="separator" style="clear: both; text-align: left;">
+To get started, lets put a "DiscoveryAgent" and "ConvenienceRobot" into our main activity. The former will find a robot for us, and the latter lets us send commands to it.</div>
+<div class="separator" style="clear: both; text-align: left;">
+<br /></div>
+<div class="separator" style="clear: both; text-align: left;">
+<br /></div>
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<table><tbody>
+<tr><td><pre style="line-height: 125%; margin: 0;">1
+2
+3
+4
+5
+6
+7
+8</pre>
+</td><td><pre style="line-height: 125%; margin: 0;"><span style="color: #f92672;">...</span>
+<span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.orbotix.ConvenienceRobot</span><span style="color: #f92672;">;</span>
+<span style="color: #f92672;">import</span> <span style="color: #f8f8f2;">com.orbotix.common.DiscoveryAgent</span><span style="color: #f92672;">;</span>
+
+<span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">class</span> <span style="color: #a6e22e;">GettingStartedActivity</span> <span style="color: #66d9ef;">extends</span> <span style="color: #f8f8f2;">ActionBarActivity</span> <span style="color: #f92672;">{</span>
+<span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">DiscoveryAgent</span> <span style="color: #f8f8f2;">_discoveryAgent</span><span style="color: #f92672;">;</span>
+<span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">ConvenienceRobot</span> <span style="color: #f8f8f2;">_robot</span><span style="color: #f92672;">;</span>
+<span style="color: #f92672;">...</span>
+</pre>
+</td></tr>
+</tbody></table>
+</div>
+<div>
+<br />
+Now I'm going to create two helper classes. The first will just listen for discovery events, we'll just log that we're seeing robots. If we were connecting to Sphero, we'd use this to connect to the robot. Fortunately for us, Ollie will automatically connect when you get close enough!<br />
+<br />
+<br /></div>
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<table><tbody>
+<tr><td><pre style="line-height: 125%; margin: 0;">1
+2
+3
+4
+5
+6
+7</pre>
+</td><td><pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">DiscoveryAgentEventListener</span> <span style="color: #f8f8f2;">_discoveryAgentEventListener</span> <span style="color: #f92672;">=</span> <span style="color: #66d9ef;">new</span> <span style="color: #f8f8f2;">DiscoveryAgentEventListener</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+<span style="color: #a6e22e;">@Override</span>
+<span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">handleRobotsAvailable</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">List</span><span style="color: #f92672;">&lt;</span><span style="color: #f8f8f2;">Robot</span><span style="color: #f92672;">&gt;</span> <span style="color: #f8f8f2;">robots</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+<span style="color: #75715e;">// for LE robots, we connect automagically</span>
+<span style="color: #f8f8f2;">Log</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">i</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"Connecting"</span><span style="color: #f92672;">,</span> <span style="color: #e6db74;">"Found "</span> <span style="color: #f92672;">+</span> <span style="color: #f8f8f2;">robots</span><span style="color: #f92672;">);</span>
+<span style="color: #f92672;">}</span>
+<span style="color: #f92672;">};</span>
+</pre>
+</td></tr>
+</tbody></table>
+</div>
+<br />
+This next class is pretty important, it will actually connect to Ollie and change his color to green. I'll cover "stopDiscovery()" in a second, so don't worry too much.<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<table><tbody>
+<tr><td><pre style="line-height: 125%; margin: 0;"> 1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14</pre>
+</td><td><pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">private</span> <span style="color: #f8f8f2;">RobotChangedStateListener</span> <span style="color: #f8f8f2;">_robotStateListener</span> <span style="color: #f92672;">=</span> <span style="color: #66d9ef;">new</span> <span style="color: #f8f8f2;">RobotChangedStateListener</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+<span style="color: #a6e22e;">@Override</span>
+<span style="color: #66d9ef;">public</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">changedState</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">Robot</span> <span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">RobotChangedStateNotificationType</span> <span style="color: #f8f8f2;">robotChangedStateNotificationType</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+<span style="color: #66d9ef;">switch</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robotChangedStateNotificationType</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+<span style="color: #66d9ef;">case</span> <span style="color: #f8f8f2;">Online:</span>
+<span style="color: #f8f8f2;">Log</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">i</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"Connecting"</span><span style="color: #f92672;">,</span> <span style="color: #f8f8f2;">robot</span> <span style="color: #f92672;">+</span> <span style="color: #e6db74;">" Online!"</span><span style="color: #f92672;">);</span>
+<span style="color: #f8f8f2;">_robot</span> <span style="color: #f92672;">=</span> <span style="color: #66d9ef;">new</span> <span style="color: #f8f8f2;">Ollie</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">robot</span><span style="color: #f92672;">);</span>
+<span style="color: #f8f8f2;">stopDiscovery</span><span style="color: #f92672;">();</span>
+
+<span style="color: #f8f8f2;">_robot</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">setLed</span><span style="color: #f92672;">(</span><span style="color: #ae81ff;">0</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">f</span><span style="color: #f92672;">,</span> <span style="color: #ae81ff;">1</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">f</span><span style="color: #f92672;">,</span> <span style="color: #ae81ff;">0</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">f</span><span style="color: #f92672;">);</span>
+<span style="color: #66d9ef;">break</span><span style="color: #f92672;">;</span>
+<span style="color: #f92672;">}</span>
+<span style="color: #f92672;">}</span>
+<span style="color: #f92672;">};</span>
+</pre>
+</td></tr>
+</tbody></table>
+</div>
+<br />
+Once we register this listener, it will return back to us with every state change. For now we just care about "Online." Here, you can listen for things like "Disconnected," "Offline," "Connecting," and "FailedConnect" to more robustly handle the various connection states. Once a robot comes online, we set its LED light to be green with the setLed call. The values are red, green, and blue and valid inputs range from 0 to 1. So setLed(0, 1, 0) will make ollie glow green. If we chose (1,1,1) it would be white and (0,0,0) would be off (not a very exciting test).<br />
+<br />
+Now, lets actually connect to the robot. We'll add the following code to both start looking for a robot and to stop.<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<table><tbody>
+<tr><td><pre style="line-height: 125%; margin: 0;"> 1
+2
+3
+4
+5
+6
+7
+8
+9
+10
+11
+12
+13
+14
+15
+16
+17
+18</pre>
+</td><td><pre style="line-height: 125%; margin: 0;"> <span style="color: #66d9ef;">private</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">startDiscovery</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+<span style="color: #f8f8f2;">_discoveryAgent</span> <span style="color: #f92672;">=</span> <span style="color: #f8f8f2;">DiscoveryAgentLE</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">getInstance</span><span style="color: #f92672;">();</span>
+<span style="color: #f8f8f2;">_discoveryAgent</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">addDiscoveryListener</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">_discoveryAgentEventListener</span><span style="color: #f92672;">);</span>
+<span style="color: #f8f8f2;">_discoveryAgent</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">addRobotStateListener</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">_robotStateListener</span><span style="color: #f92672;">);</span>
+<span style="color: #66d9ef;">try</span> <span style="color: #f92672;">{</span>
+<span style="color: #f8f8f2;">_discoveryAgent</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">startDiscovery</span><span style="color: #f92672;">(</span><span style="color: #66d9ef;">this</span><span style="color: #f92672;">);</span>
+<span style="color: #f92672;">}</span> <span style="color: #66d9ef;">catch</span> <span style="color: #f92672;">(</span><span style="color: #f8f8f2;">DiscoveryException</span> <span style="color: #f8f8f2;">e</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+<span style="color: #f8f8f2;">Log</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">e</span><span style="color: #f92672;">(</span><span style="color: #e6db74;">"Connecting"</span><span style="color: #f92672;">,</span> <span style="color: #e6db74;">"Failed to start discovery because "</span> <span style="color: #f92672;">+</span> <span style="color: #f8f8f2;">e</span><span style="color: #f92672;">);</span>
+<span style="color: #f8f8f2;">e</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">printStackTrace</span><span style="color: #f92672;">();</span>
+<span style="color: #f92672;">}</span>
+<span style="color: #f92672;">}</span>
+
+<span style="color: #66d9ef;">private</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">stopDiscovery</span><span style="color: #f92672;">()</span> <span style="color: #f92672;">{</span>
+<span style="color: #f8f8f2;">_discoveryAgent</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">stopDiscovery</span><span style="color: #f92672;">();</span>
+<span style="color: #f8f8f2;">_discoveryAgent</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">removeDiscoveryListener</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">_discoveryAgentEventListener</span><span style="color: #f92672;">);</span>
+<span style="color: #f8f8f2;">_discoveryAgent</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">removeRobotStateListener</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">_robotStateListener</span><span style="color: #f92672;">);</span>
+<span style="color: #f8f8f2;">_discoveryAgent</span> <span style="color: #f92672;">=</span> <span style="color: #66d9ef;">null</span><span style="color: #f92672;">;</span>
+<span style="color: #f92672;">}</span>
+</pre>
+</td></tr>
+</tbody></table>
+</div>
+<br />
+Some importing lines to note. We call DiscoveryAgentLE.getInstance() to look for Ollie, we can change this to "DiscoveryAgentClassic" to look for Sphero. Additionally, we're registering those helper classes we made earlier in addDiscoveryListener and addRobotStateListener. Without these calls, we wouldn't get any notification.<br />
+<br />
+Once we have everything setup, we call startDiscovery. One last note, it is ideal to remove all the listeners you registered before you shut down the app, but you won't get the disconnect callback if you unregister the _discoveryAgentEentListener. In your final code, you'd just want to call _discoveryAgent.stopDiscovery(); when a robot connects and call the .remove functions when your app is done with Ollie.<br />
+<br />
+So we have all the code to connect to a robot, lets connect! Add "startDiscovery()" to onCreate like so:<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<table><tbody>
+<tr><td><pre style="line-height: 125%; margin: 0;">1
+2
+3
+4
+5
+6
+7</pre>
+</td><td><pre style="line-height: 125%; margin: 0;"> <span style="color: #a6e22e;">@Override</span>
+<span style="color: #66d9ef;">protected</span> <span style="color: #66d9ef;">void</span> <span style="color: #a6e22e;">onCreate</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">Bundle</span> <span style="color: #f8f8f2;">savedInstanceState</span><span style="color: #f92672;">)</span> <span style="color: #f92672;">{</span>
+<span style="color: #66d9ef;">super</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">onCreate</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">savedInstanceState</span><span style="color: #f92672;">);</span>
+<span style="color: #f8f8f2;">setContentView</span><span style="color: #f92672;">(</span><span style="color: #f8f8f2;">R</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">layout</span><span style="color: #f92672;">.</span><span style="color: #a6e22e;">activity_getting_started</span><span style="color: #f92672;">);</span>
+
+<span style="color: #f8f8f2;">startDiscovery</span><span style="color: #f92672;">();</span>
+<span style="color: #f92672;">}</span>
+</pre>
+</td></tr>
+</tbody></table>
+</div>
+<br />
+You're almost ready to hit run! We just need to do one more thing. In your "AndroidManifest.xml," you need to tell Android that we want to use BluetoothLE.<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<table><tbody>
+<tr><td><pre style="line-height: 125%; margin: 0;">1
+2
+3</pre>
+</td><td><pre style="line-height: 125%; margin: 0;"> <span style="color: #f92672;">&lt;uses-feature</span> <span style="color: #a6e22e;">android:name=</span><span style="color: #e6db74;">"android.hardware.bluetooth_le"</span> <span style="color: #a6e22e;">android:required=</span><span style="color: #e6db74;">"true"</span><span style="color: #f92672;">/&gt;</span>
+<span style="color: #f92672;">&lt;uses-permission</span> <span style="color: #a6e22e;">android:name=</span><span style="color: #e6db74;">"android.permission.BLUETOOTH"</span><span style="color: #f92672;">/&gt;</span>
+<span style="color: #f92672;">&lt;uses-permission</span> <span style="color: #a6e22e;">android:name=</span><span style="color: #e6db74;">"android.permission.BLUETOOTH_ADMIN"</span><span style="color: #f92672;">/&gt;</span>
+</pre>
+</td></tr>
+</tbody></table>
+</div>
+<br />
+Of course, your users may start demanding why you need all these permissions. So lets break this down real fast:<br />
+"android.hardware.bluetooth_le" simply lets us use BLE rather than Bluetooth Classic. This is how Ollie communicates with your device.<br />
+"android.permission.BLUETOOTH" is pretty self-explanatory. This lets use use Bluetooth.<br />
+"android.permission.BLUETOOTH_ADMIN" sometimes scares people. This simply says that we'll discover and pair with devices. Many bluetooth devices like keyboards and speakers are paired with by the OS outside of our app. This is not the case with Ollie! He'll sit quietly for months looking for a friend to play with before your app comes by and wakes him up.<br />
+<br />
+Now you should be up and running with an Ollie. Some things to try on your own:<br />
+<ul>
+<li>Disconnect from Ollie when you enter the background</li>
+<li>Support reconnecting to Ollie when he becomes disconnected (you can force a disconnect from the robot by plugging him in)</li>
+<li>Try changing the colors a bit</li>
+<li>Get him driving</li>
+</ul>
+<div>
+If you have the entire Git repo pulled down, I recommend checking out the DriveSample for examples on how to use the SDK.</div>
+<div>
+<br /></div>
+<div>
+Happy Hacking!<br />
+<br />
+Edit:<br />
+One more permission is required, it will crash sometimes if you forget to add it.<br />
+<br />
+<!-- HTML generated using hilite.me --><br />
+<div style="background: #272822; border-width: .1em .1em .1em .8em; border: solid gray; overflow: auto; padding: .2em .6em; width: auto;">
+<pre style="line-height: 125%; margin: 0;"><span style="color: #f92672;">&lt;uses-permission</span> <span style="color: #a6e22e;">android:name=</span><span style="color: #e6db74;">"android.permission.INTERNET"</span><span style="color: #f92672;">/&gt;</span>
+</pre>
+</div>
+<br />
+This is for collecting stats, which can be used to improve the SDK as well as the general Ollie experience.</div>
