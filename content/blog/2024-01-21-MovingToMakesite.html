@@ -1,0 +1,57 @@
+<!-- title: Moving to Makesite -->
+
+<h2>Why?</h2>
+
+<p>
+    My first introduction to programming was entering <code>&lt;html&gt</code> on the now long-defunct site Angelfire. My first job involved maintaining a website, and my first gig as a Developer Advocate was two years spent in Firebase, ableit as the Unity and C++ expert. Which is a long way of saying, I don't like (and am mildly embarassed that) my web presence is a Blogger site and a pile of half-maintained static sites.
+</p>
+<p>
+    So I set out to rebuilt my blog on something more under my control. My main goal:
+
+    <blockquote>
+        I want a lightweight customizable static site that will last years without maintenance and I can fully understand if I go months or years between posts.
+    </blockquote>
+
+    I don't want a dynamic content management system (or "CMS") especially after my old Wordpress site was compromised. I want to be able to <i>totally forget</i> about the site for months (or even years) and have it be fully serviceable -- this means no messing with node versions or debugging dependencies that need updates. The pages it generates I also want to be lightweight: I should be able to open them in a text based browser if I want and the only necessary JavaScript should be silly jaunts into web-based gamedev rather than piles of analytics or dynamic content generation. Finally, I am not and never plan to be a professional web dev -- I want to do website stuff then run back to my regular gamedev shenanigans.
+</p>
+<p>
+    After poking at <a href="https://jekyllrb.com/">Jekyll</a> (I even <a href="https://github.com/patm1987/PatrickSE">started using it for another site</a>), <a href="https://gohugo.io/">Hugo</a>, and <a href="https://www.bridgetownrb.com/">Bridgetown</a>: I decided that all of these were way more complicated than I wanted. I couldn't even find a simple way to change my footer in Hugo.
+</p>
+<p>
+    So 30 seconds before decided "I should build my own CMS", I found <a href="https://github.com/sunainapai/makesite">Makesite</a>. It's less a CMS and more a starting point for rolling your own. It seemed to check every box I wanted, it's basically one python script with the only dependency being a markdown parser.
+</p>
+<h2>Why do I love it?</h2>
+<p>
+    When my next fallback was writing my own CMS, it was nice to find a starter project that is roughly where I would've gone. The directory structure is also simple enough that I can eventually rip out all the existing code and replace it with my own if it ever became an issue.
+    <ul>
+        <li>I can edit my posts in plain HTML</li>
+        <ul><li>but it does support Markdown for pulling in my old posts</li></ul>
+        <li>it's entirely contained in one python script</li>
+        <ul><li>which I've already been teaking</li></ul>
+        <li>modifying the default templates are self explanatory</li>
+        <li>it's already setup to serve content with a single <code>make serve</code></li>
+        <li>having a <code>make</code> command makes it easy to seutp with github actions</li>
+        <li>the only dependency is commonmark</li>
+        <ul><li>and it's optional</li></ul>
+    </ul>
+</p>
+<h2>Where there's room for improvement</h2>
+<p>
+    Makesite makes it <a href="https://github.com/sunainapai/makesite#faq">blatantly obviousl</a> that it's functioning exactly as expected. So this is less a set of feature requests and more a TODO list for my future self.
+    <ul>
+        <li>completely omits image or asset management</li>
+        <li>it doesn't use make to incrementally build</li>
+        <ul><li>but I have some time before build time even approached the "Play" button in Unity</li></ul>
+        <li>there's no easy way to link to content in the site</li>
+        <ul><li>if I didn't deploy this as my "default" GitHub page, nothing would work</li></ul>
+    </ul>
+</p>
+<h2>What's interesting about my setup?</h2>
+<ul>
+    <li>I have <a href="https://github.com/patm1987/patm1987.github.io/blob/main/.github/workflows/static.yml">GitHub Action</a> setup to auto-deploy the static site on commit</li>
+    <li>I automatically moved my old Blogger site with <a href="https://github.com/patm1987/patm1987.github.io/blob/main/blogger-parse.py">a tiny script</a></li>
+</ul>
+<h2>Should I do the same?</h2>
+<p>
+    It's still easiest to use almost any web service to build your site, including <a href="https://wordpress.com/">Wordpress</a> or <a href="https://www.blogger.com/">Blogger</a>. And for self hosting, almost every other <a href="https://jamstack.org/generators/">Jamstack generator</a> will be more featureful than what I'm doing now. But if you want something that works, is under your control, and requires a low cognitive load overall -- <a href="https://github.com/sunainapai/makesite">Makesite</a> gets my endorsement.
+</p>
