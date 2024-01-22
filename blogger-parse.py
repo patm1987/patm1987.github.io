@@ -20,11 +20,12 @@ if __name__ == '__main__':
 
         if type.text == 'POST' and status.text == 'LIVE':
             title = entry.find('{http://www.w3.org/2005/Atom}title').text
-            published = entry.find('{http://www.w3.org/2005/Atom}published').text
+            published = entry.find('{http://www.w3.org/2005/Atom}published').text[:10]
             content = entry.find('{http://www.w3.org/2005/Atom}content').text
-            print('Title: ', title)
-            print('Published: ', published)
-            # print('Content: ', content)
-
-            for elem in entry.iter():
-                print('\t', elem.tag)
+            generated_filename = f'{published}-{title.replace(" ", "")}.html'
+            joined_content=f'<!-- title: {title} -->\n{content}'
+            print('Title:', title)
+            print('Published:', published)
+            print('Generated Filename:', generated_filename)
+            print('Content: ', content)
+            print('\n')
