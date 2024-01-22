@@ -150,7 +150,7 @@ def make_pages(src, dst, layout, **params):
 
 
 def make_list(posts, dst, list_layout, item_layout, **params):
-    """Generate list page for a blog."""
+    """Generate list page for a blog. Returns the list for shenanigans"""
     items = []
     for post in posts:
         item_params = dict(params, **post)
@@ -164,6 +164,7 @@ def make_list(posts, dst, list_layout, item_layout, **params):
 
     log('Rendering list => {} ...', dst_path)
     fwrite(dst_path, output)
+    return items
 
 
 def main():
@@ -198,12 +199,10 @@ def main():
     list_layout = render(page_layout, content=list_layout)
 
     # Create site pages.
-    make_pages('content/_index.html', '_site/index.html',
-               page_layout, **params)
     make_pages('content/[!_]*.html', '_site/{{ slug }}/index.html',
                page_layout, **params)
 
-    # Create blogs.
+    # Create blogs. Cache the latest
     blog_posts = make_pages('content/blog/*',
                             '_site/blog/{{ slug }}/index.html',
                             post_layout, blog='blog', **params)
@@ -211,11 +210,16 @@ def main():
                             '_site/news/{{ slug }}/index.html',
                             post_layout, blog='news', **params)
 
-    # Create blog list pages.
-    make_list(blog_posts, '_site/blog/index.html',
-              list_layout, item_layout, blog='blog', title='Blog', **params)
-    make_list(news_posts, '_site/news/index.html',
-              list_layout, item_layout, blog='news', title='News', **params)
+    # Create blog list pages. Save the latest of each
+    params['latest_post'] = make_list(blog_posts, '_site/blog/index.html',
+              list_layout, item_layout, blog='blog', title='Blog', **params)[0]
+    params['latest_news'] = make_list(news_posts, '_site/news/index.html',
+              list_layout, item_layout, blog='news', title='News', **params)[0]
+    
+    # Create the index, do it after collating the posts
+
+    make_pages('content/_index.html', '_site/index.html',
+               page_layout, **params)
 
     # Create RSS feeds.
     make_list(blog_posts, '_site/blog/rss.xml',
