@@ -187,6 +187,7 @@ def main():
         params.update(json.loads(fread('params.json')))
 
     # Load layouts.
+    ancient_projects_layout = fread('layout/ancient_projects.html')
     page_layout = fread('layout/page.html')
     post_layout = fread('layout/post.html')
     list_layout = fread('layout/list.html')
@@ -195,6 +196,7 @@ def main():
     item_xml = fread('layout/item.xml')
 
     # Combine layouts to form final layouts.
+    ancient_projects_layout = render(page_layout, content=ancient_projects_layout)
     post_layout = render(page_layout, content=post_layout)
     list_layout = render(page_layout, content=list_layout)
 
@@ -209,12 +211,17 @@ def main():
     news_posts = make_pages('content/news/*.html',
                             '_site/news/{{ slug }}/index.html',
                             post_layout, blog='news', **params)
+    ancient_projects_posts = make_pages('content/ancient_projects/*.md',
+                                        '_site/ancient_projects/{{ slug }}/index.html',
+                                        post_layout, blog='ancient_projects', **params)
 
     # Create blog list pages. Save the latest of each
     params['latest_post'] = make_list(blog_posts, '_site/blog/index.html',
               list_layout, item_layout, blog='blog', title='Blog', **params)[0]
     params['latest_news'] = make_list(news_posts, '_site/news/index.html',
               list_layout, item_layout, blog='news', title='News', **params)[0]
+    make_list(ancient_projects_posts, '_site/ancient_projects/index.html',
+              ancient_projects_layout, item_layout, blog='ancient_projects', title="Ancient Projects", **params)
     
     # Create the index, do it after collating the posts
 
